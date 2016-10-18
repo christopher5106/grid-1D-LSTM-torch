@@ -2,6 +2,7 @@ require 'nn'
 require 'nngraph'
 require 'cutorch'
 require 'cunn'
+local model_utils = require 'model_utils'
 
 cmd = torch.CmdLine()
 cmd:text()
@@ -12,11 +13,13 @@ cmd:text('Options')
 cmd:option('-hidden',500,'number of hidden neurons')
 cmd:option('-layers',5,'number of layers')
 cmd:option('-learning_rate',0.005,'learning rate')
+cmd:option('-decay_rate',0.95,'decay rate for rmsprop')
 cmd:option('-batch_size',100,'batch size')
 cmd:option('-iterations',10000,'nb of iterations')
 cmd:option('-nb_bits',10,'input number of bits')
 cmd:option('-eval_interval',1000,'print interval')
 cmd:option('-gpu',1,'gpu to use. if 0, cpu')
+cmd:option('-grad_clip',5,'clip gradients at this value')
 cmd:text()
 params = cmd:parse(arg)
 
@@ -81,6 +84,15 @@ outputs = {}
 table.insert(outputs, nn.LogSoftMax()(nn.Linear( cell_dim + params.hidden , 2)( nn.JoinTable(2)({h,m}) )))
 
 mlp = nn.gModule(inputs, outputs)
+
+-- put the above things into one flattened parameters tensor
+params, grad_params = model_utils.combine_all_parameters(mlp)
+
+-- initialization
+if do_random_init then
+    params:uniform(-0.08, 0.08) -- small uniform numbers
+end
+
 ---------Training:------------
 criterion = nn.ClassNLLCriterion()
 if gpu then
@@ -88,24 +100,34 @@ if gpu then
 	criterion=criterion:cuda()
 end
 
+function feval(x) {
+  if x ~= params then
+    params:copy(x)
+  end
+  grad_params:zero()
+
+  -- generate data
+  input = torch.zeros(params.batch_size,params.hidden)
+  input[{{},{1,params.nb_bits}}] = torch.rand(params.batch_size,params.nb_bits):round()
+  target = (input:sum(2) % 2 +1):squeeze()
+  if gpu then
+     input=input:cuda()
+     target = target:cuda()
+  end
+  local out = mlp:forward(input)
+  local loss = criterion:forward(out, target)
+  criterion:backward(out, target)
+  mlp:backward(input, gradOut)
+  grad_params:clamp(-params.grad_clip, params.grad_clip)
+  return loss, grad_params
+}
+
 training_losses,accuracies = {},{}
+local optim_state = {learningRate = params.learning_rate, alpha = params.decay_rate}
 
 for e=1,params.iterations / params.batch_size do
-   -- generate data
-   input = torch.zeros(params.batch_size,params.hidden)
-   input[{{},{1,params.nb_bits}}] = torch.rand(params.batch_size,params.nb_bits):round()
-   target = (input:sum(2) % 2 +1):squeeze()
-   if gpu then
-      input=input:cuda()
-      target = target:cuda()
-   end
-   local err
-   out = mlp:forward(input)
-   err = criterion:forward(out, target)
-   gradOut = criterion:backward(out, target)
-   mlp:backward(input, gradOut)
-   mlp:updateParameters(params.learning_rate)
-   mlp:zeroGradParameters()
+  local _, loss = optim.rmsprop(feval, params, optim_state)
+
    if e % params.eval_interval == 0 then
       table.insert(training_losses, err)
       accuracy = (((out[{{},1}]):round()-target):pow(2)):mean()
