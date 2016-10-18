@@ -122,16 +122,30 @@ function feval(x)
   return loss, grad_params
 end
 
+function eval()
+  input = torch.zeros(opt.batch_size,opt.hidden)
+  input[{{},{1,opt.nb_bits}}] = torch.rand(opt.batch_size,opt.nb_bits):round()
+  target = (input:sum(2) % 2 +1):squeeze()
+  if gpu then
+     input=input:cuda()
+     target = target:cuda()
+  end
+  local out = mlp:forward(input)
+  local loss = criterion:forward(out, target)
+  return out,loss
+end
+
 training_losses,accuracies = {},{}
 local optim_state = {learningRate = opt.learning_rate}
 
 for e=1,opt.iterations/opt.batch_size do
-  local _, loss = optim.adagrad(feval, params, optim_state)
+   optim.adagrad(feval, params, optim_state)
    if e % opt.eval_interval == 0 then
-      table.insert(training_losses, loss[1])
-      --accuracy = (((out[{{},1}]):round()-target):pow(2)):mean()
-      --table.insert(accuracies,accuracy)
-      print("Iteration", e,"Training Loss",loss[1],"Accuracy",accuracy)
+      local out,loss = eval()
+      table.insert(training_losses, loss)
+      accuracy = (((out[{{},1}]):round()-target):pow(2)):mean()
+      table.insert(accuracies,accuracy)
+      print("Iteration", e,"Training Loss",loss,"Accuracy",accuracy)
    end
 end
 
