@@ -100,7 +100,7 @@ if gpu then
 	criterion=criterion:cuda()
 end
 
-function feval(x) {
+function feval(x) 
   if x ~= params then
     params:copy(x)
   end
@@ -120,7 +120,7 @@ function feval(x) {
   mlp:backward(input, gradOut)
   grad_params:clamp(-params.grad_clip, params.grad_clip)
   return loss, grad_params
-}
+end
 
 training_losses,accuracies = {},{}
 local optim_state = {learningRate = params.learning_rate, alpha = params.decay_rate}
