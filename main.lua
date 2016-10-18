@@ -128,10 +128,10 @@ local optim_state = {learningRate = opt.learning_rate}
 for e=1,opt.iterations/opt.batch_size do
   local _, loss = optim.adagrad(feval, params, optim_state)
    if e % opt.eval_interval == 0 then
-      table.insert(training_losses, err)
+      table.insert(training_losses, loss[1])
       --accuracy = (((out[{{},1}]):round()-target):pow(2)):mean()
       --table.insert(accuracies,accuracy)
-      print("Iteration", e,"Training Loss",err,"Accuracy",accuracy)
+      print("Iteration", e,"Training Loss",loss[1],"Accuracy",accuracy)
    end
 end
 
