@@ -81,7 +81,7 @@ for n=2,opt.layers do
 end
 
 outputs = {}
-table.insert(outputs, nn.Sigmoid()(nn.Linear( cell_dim + opt.hidden , 1)( nn.JoinTable(2)({h,m}) )))
+table.insert(outputs, nn.Sigmoid()( nn.Linear( cell_dim + opt.hidden , 1)( nn.JoinTable(2)({h,m}) )))
 
 mlp = nn.gModule(inputs, outputs)
 
@@ -103,7 +103,7 @@ end
 function next_batch()
   input = torch.zeros(opt.batch_size,opt.hidden)
   input[{{},{1,opt.nb_bits}}] = torch.rand(opt.batch_size,opt.nb_bits):round()
-  target = (input:sum(2) % 2 +1):squeeze()
+  target = (input:sum(2) % 2):squeeze()
   if gpu then
      input=input:cuda()
      target = target:cuda()
@@ -120,7 +120,7 @@ function feval(x)
   local input, target = next_batch()
   local out = mlp:forward(input)
   local loss = criterion:forward(out, target)
-  local gradOut =criterion:backward(out, target)
+  local gradOut = criterion:backward(out, target)
   mlp:backward(input, gradOut)
   grad_params:clamp(-opt.grad_clip, opt.grad_clip)
   return loss, grad_params
