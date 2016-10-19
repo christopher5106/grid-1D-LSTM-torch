@@ -60,24 +60,24 @@ m = nn.CAddTable()( { nn.CMulTable()({input_gate_,candidate_}),nn.CMulTable()({f
 h = nn.Tanh()( nn.CMulTable()({ output_gate_, m }) )
 
 for n=2,opt.layers do
-	forget_lin_ = nn.Linear(opt.hidden,cell_dim)
-	forget_lin_:share( forget_lin, 'weight', 'bias','gradWeight', 'gradBias'  )
-	forget_gate_ = nn.Sigmoid()(forget_lin_(h))
+  forget_lin_ = nn.Linear(opt.hidden,cell_dim)
+  forget_lin_:share( forget_lin, 'weight', 'bias','gradWeight', 'gradBias'  )
+  forget_gate_ = nn.Sigmoid()(forget_lin_(h))
 
-	input_lin_ = nn.Linear(opt.hidden,cell_dim)
-	input_lin_:share( input_lin, 'weight', 'bias','gradWeight', 'gradBias'  )
-	input_gate_ = nn.Sigmoid()(input_lin_(h))
+  input_lin_ = nn.Linear(opt.hidden,cell_dim)
+  input_lin_:share( input_lin, 'weight', 'bias','gradWeight', 'gradBias'  )
+  input_gate_ = nn.Sigmoid()(input_lin_(h))
 
-	candidate_lin_ = nn.Linear(opt.hidden,cell_dim)
-	candidate_lin_:share( candidate_lin, 'weight', 'bias','gradWeight', 'gradBias'  )
-	candidate_ = nn.Tanh()(candidate_lin_(h))
+  candidate_lin_ = nn.Linear(opt.hidden,cell_dim)
+  candidate_lin_:share( candidate_lin, 'weight', 'bias','gradWeight', 'gradBias'  )
+  candidate_ = nn.Tanh()(candidate_lin_(h))
 
-	output_lin_ = nn.Linear(opt.hidden,cell_dim)
-	output_lin_:share( output_lin, 'weight', 'bias','gradWeight', 'gradBias'  )
-	output_gate_ = nn.Sigmoid()(output_lin_(h))
+  output_lin_ = nn.Linear(opt.hidden,cell_dim)
+  output_lin_:share( output_lin, 'weight', 'bias','gradWeight', 'gradBias'  )
+  output_gate_ = nn.Sigmoid()(output_lin_(h))
 
-	m = nn.CAddTable()( { nn.CMulTable()({input_gate_,candidate_}),nn.CMulTable()({forget_gate_,m}) })
-	h = nn.Tanh()( nn.CMulTable()({ output_gate_, m }) )
+  m = nn.CAddTable()( { nn.CMulTable()({input_gate_,candidate_}),nn.CMulTable()({forget_gate_,m}) })
+  h = nn.Tanh()( nn.CMulTable()({ output_gate_, m }) )
 end
 
 outputs = {}
