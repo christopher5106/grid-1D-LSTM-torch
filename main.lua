@@ -141,7 +141,7 @@ for e=1,opt.iterations/opt.batch_size do
    if e % opt.eval_interval == 0 then
       local out,loss = eval()
       table.insert(training_losses, loss)
-      accuracy = (((out[{{},1}]):round()-target):pow(2)):mean()
+      accuracy = (out:round()-target):abs():mean()
       table.insert(accuracies,accuracy)
       print("Iteration", e,"Training Loss",loss,"Accuracy",accuracy)
    end
