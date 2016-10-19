@@ -100,13 +100,8 @@ if gpu then
 	criterion=criterion:cuda()
 end
 
-function feval(x) 
-  if x ~= params then
-    params:copy(x)
-  end
-  grad_params:zero()
-
-  -- generate data
+-- generate data
+function next_batch()
   input = torch.zeros(opt.batch_size,opt.hidden)
   input[{{},{1,opt.nb_bits}}] = torch.rand(opt.batch_size,opt.nb_bits):round()
   target = (input:sum(2) % 2 +1):squeeze()
@@ -114,6 +109,16 @@ function feval(x)
      input=input:cuda()
      target = target:cuda()
   end
+  return input, target
+end
+
+function feval(x)
+  if x ~= params then
+    params:copy(x)
+  end
+  grad_params:zero()
+
+  local input, target = next_batch()
   local out = mlp:forward(input)
   local loss = criterion:forward(out, target)
   local gradOut =criterion:backward(out, target)
@@ -123,13 +128,7 @@ function feval(x)
 end
 
 function eval()
-  input = torch.zeros(opt.batch_size,opt.hidden)
-  input[{{},{1,opt.nb_bits}}] = torch.rand(opt.batch_size,opt.nb_bits):round()
-  target = (input:sum(2) % 2 +1):squeeze()
-  if gpu then
-     input=input:cuda()
-     target = target:cuda()
-  end
+  local input, target = next_batch()
   local out = mlp:forward(input)
   local loss = criterion:forward(out, target)
   return out,loss
