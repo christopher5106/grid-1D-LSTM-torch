@@ -96,8 +96,8 @@ end
 ---------Training:------------
 criterion = nn.ClassNLLCriterion()
 if gpu then
-	mlp = mlp:cuda()
-	criterion=criterion:cuda()
+  mlp = mlp:cuda()
+  criterion=criterion:cuda()
 end
 
 -- generate data
