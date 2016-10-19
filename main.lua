@@ -81,7 +81,7 @@ for n=2,opt.layers do
 end
 
 outputs = {}
-table.insert(outputs, nn.LogSoftMax()(nn.Linear( cell_dim + opt.hidden , 2)( nn.JoinTable(2)({h,m}) )))
+table.insert(outputs, nn.Sigmoid()(nn.Linear( cell_dim + opt.hidden , 1)( nn.JoinTable(2)({h,m}) )))
 
 mlp = nn.gModule(inputs, outputs)
 
@@ -90,11 +90,10 @@ params, grad_params = model_utils.combine_all_parameters(mlp)
 
 -- initialization
 if do_random_init then
-    params:uniform(-0.08, 0.08) -- small uniform numbers
+  params:uniform(-0.08, 0.08) -- small uniform numbers
 end
 
----------Training:------------
-criterion = nn.ClassNLLCriterion()
+criterion = nn.BCECriterion()
 if gpu then
   mlp = mlp:cuda()
   criterion=criterion:cuda()
@@ -134,9 +133,9 @@ function eval()
   return out,loss
 end
 
+---------Training:------------
 training_losses,accuracies = {},{}
 local optim_state = {learningRate = opt.learning_rate}
-
 for e=1,opt.iterations/opt.batch_size do
    optim.adagrad(feval, params, optim_state)
    if e % opt.eval_interval == 0 then
@@ -148,5 +147,6 @@ for e=1,opt.iterations/opt.batch_size do
    end
 end
 
+---------Saving:------------
 torch.save(string.format( "shared_w_accuracies_i%s_lr%s_h%s_lay%s_b%s", opt.iterations, opt.learning_rate, opt.hidden, opt.layers, opt.batch_size), accuracies)
 torch.save(string.format( "shared_w_losses_i%s_lr%s_h%s_lay%s_b%s", opt.iterations, opt.learning_rate, opt.hidden, opt.layers, opt.batch_size), training_losses)
